@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private Portfolio Analytics</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1f77b4;
+            --secondary-color: #ff7f0e;
+            --background-color: #f8f9fa;
+            --card-background: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: white;
+            margin: 20px 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 15px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            background: none;
+            color: var(--text-color);
+        }
+
+        .nav-tab:hover {
+            background-color: #f0f0f0;
+        }
+
+        .nav-tab.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: var(--card-background);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: var(--card-background);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #1565c0;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 4px solid var(--success-color);
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .search-filter {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-filter input,
+        .search-filter select {
+            padding: 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .file-upload {
+            border: 2px dashed var(--border-color);
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: border-color 0.3s ease;
+        }
+
+        .file-upload:hover {
+            border-color: var(--primary-color);
+        }
+
+        .file-upload.dragover {
+            border-color: var(--primary-color);
+            background-color: #f0f8ff;
+        }
+
+        @media (max-width: 768px) {
+            .nav-tabs {
+                flex-direction: column;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .search-filter {
+                flex-direction: column;
+            }
+        }
+
+        .footer {
+            text-align: center;
+            padding: 40px 0;
+            color: #666;
+            border-top: 1px solid var(--border-color);
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-chart-line"></i> Private Portfolio Analytics
+                </div>
+                <div>
+                    <span id="totalValue">€0</span> | <span id="totalCompanies">0 companies</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showPage('dashboard')">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </button>
+            <button class="nav-tab" onclick="showPage('portfolio')">
+                <i class="fas fa-briefcase"></i> Portfolio
+            </button>
+            <button class="nav-tab" onclick="showPage('analytics')">
+                <i class="fas fa-chart-bar"></i> Analytics
+            </button>
+            <button class="nav-tab" onclick="showPage('import-export')">
+                <i class="fas fa-file-exchange-alt"></i> Import/Export
+            </button>
+        </div>
+
+        <!-- Dashboard Page -->
+        <div id="dashboard" class="page active">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" id="dashTotalValue">€0</div>
+                    <div class="metric-label">Total Portfolio Value</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="dashCompanyCount">0</div>
+                    <div class="metric-label">Companies</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="dashTotalReturn">0%</div>
+                    <div class="metric-label">Total Return</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="dashAvgHolding">€0</div>
+                    <div class="metric-label">Average Holding</div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Portfolio Composition</h3>
+                    <canvas id="portfolioChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Sector Distribution</h3>
+                    <canvas id="sectorChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Top Holdings</h3>
+                <div class="table-container">
+                    <table id="topHoldingsTable">
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Value</th>
+                                <th>Sector</th>
+                                <th>Stage</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Portfolio Page -->
+        <div id="portfolio" class="page">
+            <div class="card">
+                <h3>Add New Company</h3>
+                <form id="addCompanyForm">
+                    <div class="form-grid">
+                        <div>
+                            <div class="form-group">
+                                <label>Company Name *</label>
+                                <input type="text" id="companyName" required>
+                            </div>
+                            <div class="form-group">
+                                <label>ISIN *</label>
+                                <input type="text" id="isin" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Current Market Value (€) *</label>
+                                <input type="number" id="marketValue" min="0" step="0.01" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Initial Investment (€)</label>
+                                <input type="number" id="initialInvestment" min="0" step="0.01">
+                            </div>
+                            <div class="form-group">
+                                <label>Ownership %</label>
+                                <input type="number" id="ownership" min="0" max="100" step="0.01">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="form-group">
+                                <label>Investment Date</label>
+                                <input type="date" id="investmentDate">
+                            </div>
+                            <div class="form-group">
+                                <label>Sector</label>
+                                <select id="sector">
+                                    <option value="">Select Sector</option>
+                                    <option value="Technology">Technology</option>
+                                    <option value="Healthcare">Healthcare</option>
+                                    <option value="Finance">Finance</option>
+                                    <option value="Consumer">Consumer</option>
+                                    <option value="Industrial">Industrial</option>
+                                    <option value="Real Estate">Real Estate</option>
+                                    <option value="Energy">Energy</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Investment Stage</label>
+                                <select id="stage">
+                                    <option value="">Select Stage</option>
+                                    <option value="Pre-Seed">Pre-Seed</option>
+                                    <option value="Seed">Seed</option>
+                                    <option value="Series A">Series A</option>
+                                    <option value="Series B">Series B</option>
+                                    <option value="Series C">Series C</option>
+                                    <option value="Growth">Growth</option>
+                                    <option value="Pre-IPO">Pre-IPO</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Notes</label>
+                                <textarea id="notes" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add to Portfolio
+                    </button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>Current Holdings</h3>
+                <div class="search-filter">
+                    <input type="text" id="searchCompanies" placeholder="Search companies..." onkeyup="filterTable()">
+                    <select id="sortBy" onchange="sortTable()">
+                        <option value="marketValue">Sort by Market Value</option>
+                        <option value="companyName">Sort by Company Name</option>
+                        <option value="sector">Sort by Sector</option>
+                        <option value="investmentDate">Sort by Investment Date</option>
+                    </select>
+                    <select id="sortOrder" onchange="sortTable()">
+                        <option value="desc">Descending</option>
+                        <option value="asc">Ascending</option>
+                    </select>
+                </div>
+                
+                <div class="table-container">
+                    <table id="portfolioTable">
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>ISIN</th>
+                                <th>Market Value</th>
+                                <th>Initial Investment</th>
+                                <th>Return</th>
+                                <th>Ownership %</th>
+                                <th>Sector</th>
+                                <th>Stage</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-secondary" onclick="removeLastCompany()">
+                        <i class="fas fa-trash"></i> Remove Last
+                    </button>
+                    <button class="btn btn-danger" onclick="clearPortfolio()">
+                        <i class="fas fa-trash-alt"></i> Clear All
+                    </button>
+                    <button class="btn btn-primary" onclick="exportCSV()">
+                        <i class="fas fa-download"></i> Export CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Page -->
+        <div id="analytics" class="page">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" id="analyticsTotal">€0</div>
+                    <div class="metric-label">Total Value</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="analyticsInvested">€0</div>
+                    <div class="metric-label">Total Invested</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="analyticsPL">€0</div>
+                    <div class="metric-label">Unrealized P&L</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="analyticsReturn">0%</div>
+                    <div class="metric-label">Total Return</div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Sector Analysis</h3>
+                    <canvas id="sectorAnalysisChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Stage Analysis</h3>
+                    <canvas id="stageAnalysisChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Risk Analysis</h3>
+                <div class="form-grid">
+                    <div>
+                        <h4>Concentration Risk</h4>
+                        <p>Top 5 Holdings: <span id="top5Concentration">0%</span></p>
+                        <p>Top 10 Holdings: <span id="top10Concentration">0%</span></p>
+                    </div>
+                    <div>
+                        <h4>Portfolio Distribution</h4>
+                        <canvas id="distributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import/Export Page -->
+        <div id="import-export" class="page">
+            <div class="card">
+                <h3>Import Portfolio</h3>
+                <div class="file-upload" id="fileUpload">
+                    <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: #ddd; margin-bottom: 20px;"></i>
+                    <p>Drop your CSV file here or <strong>click to browse</strong></p>
+                    <input type="file" id="fileInput" accept=".csv" style="display: none;">
+                </div>
+                
+                <div class="alert alert-info">
+                    <strong>CSV Format:</strong> Your file should contain columns: Company Name, ISIN, Market Value (required). 
+                    Optional: Investment Date, Sector, Stage, Ownership %, Initial Investment, Notes
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Export Options</h3>
+                <button class="btn btn-primary" onclick="exportCSV()">
+                    <i class="fas fa-download"></i> Download Full Portfolio
+                </button>
+                <button class="btn btn-secondary" onclick="exportSummary()">
+                    <i class="fas fa-chart-pie"></i> Download Summary Report
+                </button>
+                <button class="btn btn-secondary" onclick="downloadTemplate()">
+                    <i class="fas fa-file-alt"></i> Download Template
+                </button>
+            </div>
+
+            <div class="card">
+                <h3>Data Management</h3>
+                <p>Portfolio contains <span id="dataCount">0</span> companies with total value of <span id="dataValue">€0</span></p>
+                
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-secondary" onclick="backupData()">
+                        <i class="fas fa-save"></i> Backup Data to Browser Storage
+                    </button>
+                    <button class="btn btn-secondary" onclick="restoreData()">
+                        <i class="fas fa-undo"></i> Restore from Browser Storage
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Private Portfolio Analytics. Open source investment tracking platform.</p>
+            <p>Built for GitHub Pages | <a href="https://github.com/your-repo" target="_blank">View on GitHub</a></p>
+        </div>
+    </footer>
+
+    <script>
+        // Global portfolio data
+        let portfolioData = [];
+        let charts = {};
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFromStorage();
+            updateDashboard();
+            setupEventListeners();
+            
+            // Set default date to today
+            document.getElementById('investmentDate').valueAsDate = new Date();
+        });
+
+        // Event listeners
+        function setupEventListeners() {
+            // Add company form
+            document.getElementById('addCompanyForm').addEventListener('submit', addCompany);
+            
+            // File upload
+            const fileUpload = document.getElementById('fileUpload');
+            const fileInput = document.getElementById('fileInput');
+            
+            fileUpload.addEventListener('click', () => fileInput.click());
+            fileUpload.addEventListener('dragover', handleDragOver);
+            fileUpload.addEventListener('drop', handleDrop);
+            fileInput.addEventListener('change', handleFileSelect);
+        }
+
+        // Navigation
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected page
+            document.getElementById(pageId).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Update page content
+            switch(pageId) {
+                case 'dashboard':
+                    updateDashboard();
+                    break;
+                case 'portfolio':
+                    updatePortfolioTable();
+                    break;
+                case 'analytics':
+                    updateAnalytics();
+                    break;
+                case 'import-export':
+                    updateImportExport();
+                    break;
+            }
+        }
+
+        // Add company function
+        function addCompany(e) {
+            e.preventDefault();
+            
+            const formData = {
+                companyName: document.getElementById('companyName').value.trim(),
+                isin: document.getElementById('isin').value.trim(),
+                marketValue: parseFloat(document.getElementById('marketValue').value) || 0,
+                initialInvestment: parseFloat(document.getElementById('initialInvestment').value) || 0,
+                ownership: parseFloat(document.getElementById('ownership').value) || 0,
+                investmentDate: document.getElementById('investmentDate').value,
+                sector: document.getElementById('sector').value,
+                stage: document.getElementById('stage').value,
+                notes: document.getElementById('notes').value.trim()
+            };
+            
+            // Validation
+            if (!formData.companyName || !formData.isin || formData.marketValue <= 0) {
+                showAlert('Please fill in all required fields with valid values.', 'error');
+                return;
+            }
+            
+            // Check for duplicate ISIN
+            if (portfolioData.some(company => company.isin === formData.isin)) {
+                showAlert('A company with this ISIN already exists.', 'error');
+                return;
+            }
+            
+            // Add to portfolio
+            portfolioData.push({
+                ...formData,
+                id: Date.now() // Simple ID generation
+            });
+            
+            // Reset form
+            document.getElementById('addCompanyForm').reset();
+            document.getElementById('investmentDate').valueAsDate = new Date();
+            
+            // Update displays
+            saveToStorage();
+            updateDashboard();
+            updatePortfolioTable();
+            showAlert(`Successfully added ${formData.companyName} to portfolio.`, 'success');
+        }
+
+        // Remove company
+        function removeCompany(id) {
+            if (confirm('Are you sure you want to remove this company?')) {
+                portfolioData = portfolioData.filter(company => company.id !== id);
+                saveToStorage();
+                updateDashboard();
+                updatePortfolioTable();
+                showAlert('Company removed successfully.', 'success');
+            }
+        }
+
+        // Remove last company
+        function removeLastCompany() {
+            if (portfolioData.length === 0) {
+                showAlert('Portfolio is already empty.', 'warning');
+                return;
+            }
+            
+            if (confirm('Remove the last added company?')) {
+                portfolioData.pop();
+                saveToStorage();
+                updateDashboard();
+                updatePortfolioTable();
+                showAlert('Last company removed successfully.', 'success');
+            }
+        }
+
+        // Clear portfolio
+        function clearPortfolio() {
+            if (portfolioData.length === 0) {
+                showAlert('Portfolio is already empty.', 'warning');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to clear the entire portfolio? This cannot be undone.')) {
+                portfolioData = [];
+                saveToStorage();
+                updateDashboard();
+                updatePortfolioTable();
+                showAlert('Portfolio cleared successfully.', 'success');
+            }
+        }
+
+        // Update dashboard
+        function updateDashboard() {
+            const totalValue = portfolioData.reduce((sum, company) => sum + company.marketValue, 0);
+            const totalInvested = portfolioData.reduce((sum, company) => sum + (company.initialInvestment || 0), 0);
+            const totalReturn = totalInvested > 0 ? ((totalValue - totalInvested) / totalInvested * 100) : 0;
+            const avgHolding = portfolioData.length > 0 ? totalValue / portfolioData.length : 0;
+
+            // Update header
+            document.getElementById('totalValue').textContent = formatCurrency(totalValue);
+            document.getElementById('totalCompanies').textContent = `${portfolioData.length} companies`;
+
+            // Update dashboard metrics
+            document.getElementById('dashTotalValue').textContent = formatCurrency(totalValue);
+            document.getElementById('dashCompanyCount').textContent = portfolioData.length;
+            document.getElementById('dashTotalReturn').textContent = formatPercentage(totalReturn);
+            document.getElementById('dashAvgHolding').textContent = formatCurrency(avgHolding);
+
+            // Update charts
+            updatePortfolioChart();
+            updateSectorChart();
+            updateTopHoldingsTable();
+        }
+
+        // Update portfolio table
+        function updatePortfolioTable() {
+            const tbody = document.querySelector('#portfolioTable tbody');
+            tbody.innerHTML = '';
+
+            if (portfolioData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="empty-state"><i class="fas fa-briefcase"></i><br>No companies in portfolio</td></tr>';
+                return;
+            }
+
+            portfolioData.forEach(company => {
+                const returnValue = (company.initialInvestment || 0) > 0 ? 
+                    ((company.marketValue - company.initialInvestment) / company.initialInvestment * 100) : 0;
+                const returnClass = returnValue >= 0 ? 'success' : 'danger';
+
+                const row = `
+                    <tr>
+                        <td>
+                            <button class="btn btn-danger" onclick="removeCompany(${company.id})" style="padding: 5px 10px; font-size: 12px;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        // Update analytics
+        function updateAnalytics() {
+            const totalValue = portfolioData.reduce((sum, company) => sum + company.marketValue, 0);
+            const totalInvested = portfolioData.reduce((sum, company) => sum + (company.initialInvestment || 0), 0);
+            const totalPL = totalValue - totalInvested;
+            const totalReturn = totalInvested > 0 ? ((totalValue - totalInvested) / totalInvested * 100) : 0;
+
+            document.getElementById('analyticsTotal').textContent = formatCurrency(totalValue);
+            document.getElementById('analyticsInvested').textContent = formatCurrency(totalInvested);
+            document.getElementById('analyticsPL').textContent = formatCurrency(totalPL);
+            document.getElementById('analyticsReturn').textContent = formatPercentage(totalReturn);
+
+            updateSectorAnalysisChart();
+            updateStageAnalysisChart();
+            updateDistributionChart();
+            updateConcentrationRisk();
+        }
+
+        // Update import/export page
+        function updateImportExport() {
+            const totalValue = portfolioData.reduce((sum, company) => sum + company.marketValue, 0);
+            document.getElementById('dataCount').textContent = portfolioData.length;
+            document.getElementById('dataValue').textContent = formatCurrency(totalValue);
+        }
+
+        // Chart functions
+        function updatePortfolioChart() {
+            const ctx = document.getElementById('portfolioChart');
+            if (!ctx) return;
+
+            if (charts.portfolio) {
+                charts.portfolio.destroy();
+            }
+
+            if (portfolioData.length === 0) {
+                ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
+                return;
+            }
+
+            const data = portfolioData.slice(0, 10).map(company => ({
+                label: company.companyName,
+                value: company.marketValue
+            }));
+
+            charts.portfolio = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(item => item.label),
+                    datasets: [{
+                        data: data.map(item => item.value),
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+                            '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${context.label}: ${formatCurrency(value)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateSectorChart() {
+            const ctx = document.getElementById('sectorChart');
+            if (!ctx) return;
+
+            if (charts.sector) {
+                charts.sector.destroy();
+            }
+
+            if (portfolioData.length === 0) {
+                ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
+                return;
+            }
+
+            const sectorData = {};
+            portfolioData.forEach(company => {
+                const sector = company.sector || 'Unknown';
+                sectorData[sector] = (sectorData[sector] || 0) + company.marketValue;
+            });
+
+            charts.sector = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(sectorData),
+                    datasets: [{
+                        label: 'Market Value',
+                        data: Object.values(sectorData),
+                        backgroundColor: '#36A2EB'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateSectorAnalysisChart() {
+            const ctx = document.getElementById('sectorAnalysisChart');
+            if (!ctx) return;
+
+            if (charts.sectorAnalysis) {
+                charts.sectorAnalysis.destroy();
+            }
+
+            if (portfolioData.length === 0) return;
+
+            const sectorData = {};
+            portfolioData.forEach(company => {
+                const sector = company.sector || 'Unknown';
+                sectorData[sector] = (sectorData[sector] || 0) + company.marketValue;
+            });
+
+            charts.sectorAnalysis = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(sectorData),
+                    datasets: [{
+                        data: Object.values(sectorData),
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+                            '#FF9F40', '#FF6384', '#C9CBCF'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${context.label}: ${formatCurrency(value)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateStageAnalysisChart() {
+            const ctx = document.getElementById('stageAnalysisChart');
+            if (!ctx) return;
+
+            if (charts.stageAnalysis) {
+                charts.stageAnalysis.destroy();
+            }
+
+            if (portfolioData.length === 0) return;
+
+            const stageData = {};
+            portfolioData.forEach(company => {
+                const stage = company.stage || 'Unknown';
+                stageData[stage] = (stageData[stage] || 0) + company.marketValue;
+            });
+
+            charts.stageAnalysis = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(stageData),
+                    datasets: [{
+                        label: 'Market Value',
+                        data: Object.values(stageData),
+                        backgroundColor: '#FFCE56'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateDistributionChart() {
+            const ctx = document.getElementById('distributionChart');
+            if (!ctx) return;
+
+            if (charts.distribution) {
+                charts.distribution.destroy();
+            }
+
+            if (portfolioData.length === 0) return;
+
+            const ranges = {
+                '<€50K': 0,
+                '€50K-€250K': 0,
+                '€250K-€1M': 0,
+                '>€1M': 0
+            };
+
+            portfolioData.forEach(company => {
+                const value = company.marketValue;
+                if (value < 50000) ranges['<€50K']++;
+                else if (value < 250000) ranges['€50K-€250K']++;
+                else if (value < 1000000) ranges['€250K-€1M']++;
+                else ranges['>€1M']++;
+            });
+
+            charts.distribution = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(ranges),
+                    datasets: [{
+                        data: Object.values(ranges),
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateTopHoldingsTable() {
+            const tbody = document.querySelector('#topHoldingsTable tbody');
+            tbody.innerHTML = '';
+
+            if (portfolioData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No holdings to display</td></tr>';
+                return;
+            }
+
+            const totalValue = portfolioData.reduce((sum, company) => sum + company.marketValue, 0);
+            const sortedCompanies = [...portfolioData].sort((a, b) => b.marketValue - a.marketValue).slice(0, 10);
+
+            sortedCompanies.forEach(company => {
+                const percentage = ((company.marketValue / totalValue) * 100).toFixed(1);
+                const row = `
+                    <tr>
+                        <td><strong>${company.companyName}</strong></td>
+                        <td>${formatCurrency(company.marketValue)}</td>
+                        <td>${company.sector || '-'}</td>
+                        <td>${company.stage || '-'}</td>
+                        <td>${percentage}%</td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function updateConcentrationRisk() {
+            if (portfolioData.length === 0) return;
+
+            const totalValue = portfolioData.reduce((sum, company) => sum + company.marketValue, 0);
+            const sortedCompanies = [...portfolioData].sort((a, b) => b.marketValue - a.marketValue);
+
+            const top5Value = sortedCompanies.slice(0, 5).reduce((sum, company) => sum + company.marketValue, 0);
+            const top10Value = sortedCompanies.slice(0, 10).reduce((sum, company) => sum + company.marketValue, 0);
+
+            const top5Percentage = ((top5Value / totalValue) * 100).toFixed(1);
+            const top10Percentage = ((top10Value / totalValue) * 100).toFixed(1);
+
+            document.getElementById('top5Concentration').textContent = `${top5Percentage}%`;
+            document.getElementById('top10Concentration').textContent = `${top10Percentage}%`;
+        }
+
+        // Table filtering and sorting
+        function filterTable() {
+            const searchTerm = document.getElementById('searchCompanies').value.toLowerCase();
+            const table = document.getElementById('portfolioTable');
+            const rows = table.getElementsByTagName('tr');
+
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                const companyName = row.cells[0].textContent.toLowerCase();
+                const isin = row.cells[1].textContent.toLowerCase();
+
+                if (companyName.includes(searchTerm) || isin.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        }
+
+        function sortTable() {
+            const sortBy = document.getElementById('sortBy').value;
+            const sortOrder = document.getElementById('sortOrder').value;
+
+            let sortedData = [...portfolioData];
+
+            sortedData.sort((a, b) => {
+                let aVal, bVal;
+
+                switch (sortBy) {
+                    case 'companyName':
+                        aVal = a.companyName.toLowerCase();
+                        bVal = b.companyName.toLowerCase();
+                        return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                    case 'marketValue':
+                        aVal = a.marketValue;
+                        bVal = b.marketValue;
+                        break;
+                    case 'sector':
+                        aVal = a.sector || '';
+                        bVal = b.sector || '';
+                        return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                    case 'investmentDate':
+                        aVal = new Date(a.investmentDate || 0);
+                        bVal = new Date(b.investmentDate || 0);
+                        break;
+                    default:
+                        aVal = a.marketValue;
+                        bVal = b.marketValue;
+                }
+
+                if (typeof aVal === 'number') {
+                    return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+                }
+
+                return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+            });
+
+            portfolioData = sortedData;
+            updatePortfolioTable();
+        }
+
+        // File handling
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            if (!file.name.endsWith('.csv')) {
+                showAlert('Please select a CSV file.', 'error');
+                return;
+            }
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    try {
+                        importCSVData(results.data);
+                    } catch (error) {
+                        showAlert('Error parsing CSV file: ' + error.message, 'error');
+                    }
+                },
+                error: function(error) {
+                    showAlert('Error reading file: ' + error.message, 'error');
+                }
+            });
+        }
+
+        function importCSVData(data) {
+            if (data.length === 0) {
+                showAlert('CSV file is empty.', 'warning');
+                return;
+            }
+
+            let importedCount = 0;
+            const errors = [];
+
+            data.forEach((row, index) => {
+                try {
+                    // Check required fields
+                    if (!row['Company Name'] || !row['ISIN'] || !row['Market Value']) {
+                        errors.push(`Row ${index + 1}: Missing required fields`);
+                        return;
+                    }
+
+                    const marketValue = parseFloat(row['Market Value']);
+                    if (isNaN(marketValue) || marketValue <= 0) {
+                        errors.push(`Row ${index + 1}: Invalid market value`);
+                        return;
+                    }
+
+                    // Check for duplicate ISIN
+                    if (portfolioData.some(company => company.isin === row['ISIN'])) {
+                        errors.push(`Row ${index + 1}: ISIN ${row['ISIN']} already exists`);
+                        return;
+                    }
+
+                    const company = {
+                        id: Date.now() + index,
+                        companyName: row['Company Name'].trim(),
+                        isin: row['ISIN'].trim(),
+                        marketValue: marketValue,
+                        initialInvestment: parseFloat(row['Initial Investment']) || 0,
+                        ownership: parseFloat(row['Ownership %']) || 0,
+                        investmentDate: row['Investment Date'] || '',
+                        sector: row['Sector'] || '',
+                        stage: row['Stage'] || '',
+                        notes: row['Notes'] || ''
+                    };
+
+                    portfolioData.push(company);
+                    importedCount++;
+                } catch (error) {
+                    errors.push(`Row ${index + 1}: ${error.message}`);
+                }
+            });
+
+            // Show results
+            if (importedCount > 0) {
+                saveToStorage();
+                updateDashboard();
+                updatePortfolioTable();
+                showAlert(`Successfully imported ${importedCount} companies.`, 'success');
+            }
+
+            if (errors.length > 0) {
+                console.error('Import errors:', errors);
+                showAlert(`Import completed with ${errors.length} errors. Check console for details.`, 'warning');
+            }
+
+            if (importedCount === 0 && errors.length === 0) {
+                showAlert('No valid data found in CSV file.', 'warning');
+            }
+        }
+
+        // Export functions
+        function exportCSV() {
+            if (portfolioData.length === 0) {
+                showAlert('No data to export.', 'warning');
+                return;
+            }
+
+            const headers = [
+                'Company Name', 'ISIN', 'Market Value', 'Initial Investment',
+                'Ownership %', 'Investment Date', 'Sector', 'Stage', 'Notes'
+            ];
+
+            const csvContent = [
+                headers.join(','),
+                ...portfolioData.map(company => [
+                    `"${company.companyName}"`,
+                    `"${company.isin}"`,
+                    company.marketValue,
+                    company.initialInvestment || 0,
+                    company.ownership || 0,
+                    `"${company.investmentDate || ''}"`,
+                    `"${company.sector || ''}"`,
+                    `"${company.stage || ''}"`,
+                    `"${company.notes || ''}"`
+                ].join(','))
+            ].join('\n');
+
+            downloadFile(csvContent, 'portfolio_export.csv', 'text/csv');
+        }
+
+        function exportSummary() {
+            if (portfolioData.length === 0) {
+                showAlert('No data to export.', 'warning');
+                return;
+            }
+
+            const totalValue = portfolioData.reduce((sum, company) => sum + company.marketValue, 0);
+            const totalInvested = portfolioData.reduce((sum, company) => sum + (company.initialInvestment || 0), 0);
+
+            // Sector summary
+            const sectorSummary = {};
+            portfolioData.forEach(company => {
+                const sector = company.sector || 'Unknown';
+                if (!sectorSummary[sector]) {
+                    sectorSummary[sector] = { value: 0, count: 0 };
+                }
+                sectorSummary[sector].value += company.marketValue;
+                sectorSummary[sector].count++;
+            });
+
+            let summaryContent = 'Portfolio Summary Report\n';
+            summaryContent += `Generated: ${new Date().toLocaleDateString()}\n\n`;
+            summaryContent += `Total Portfolio Value: €${totalValue.toLocaleString()}\n`;
+            summaryContent += `Total Invested: €${totalInvested.toLocaleString()}\n`;
+            summaryContent += `Total Companies: ${portfolioData.length}\n`;
+            summaryContent += `Average Holding: €${(totalValue / portfolioData.length).toLocaleString()}\n\n`;
+
+            summaryContent += 'Sector Breakdown:\n';
+            summaryContent += 'Sector,Value,Count,Percentage\n';
+            Object.entries(sectorSummary).forEach(([sector, data]) => {
+                const percentage = ((data.value / totalValue) * 100).toFixed(1);
+                summaryContent += `"${sector}",€${data.value.toLocaleString()},${data.count},${percentage}%\n`;
+            });
+
+            downloadFile(summaryContent, 'portfolio_summary.csv', 'text/csv');
+        }
+
+        function downloadTemplate() {
+            const headers = [
+                'Company Name', 'ISIN', 'Market Value', 'Initial Investment',
+                'Ownership %', 'Investment Date', 'Sector', 'Stage', 'Notes'
+            ];
+
+            const sampleData = [
+                'TechStart Inc', 'TECH001', '500000', '250000', '15.5', '2023-01-15', 'Technology', 'Series A', 'AI-powered fintech startup',
+                'HealthCorp Ltd', 'HLTH002', '750000', '300000', '12.0', '2023-03-20', 'Healthcare', 'Series B', 'Digital health platform'
+            ];
+
+            const csvContent = [
+                headers.join(','),
+                sampleData.slice(0, 9).map(item => `"${item}"`).join(','),
+                sampleData.slice(9).map(item => `"${item}"`).join(',') + ',' + Array(headers.length - sampleData.slice(9).length).fill('""').join(',')
+            ].join('\n');
+
+            downloadFile(csvContent, 'portfolio_template.csv', 'text/csv');
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Storage functions
+        function saveToStorage() {
+            try {
+                localStorage.setItem('portfolioData', JSON.stringify(portfolioData));
+                localStorage.setItem('portfolioBackup', JSON.stringify({
+                    data: portfolioData,
+                    timestamp: new Date().toISOString()
+                }));
+            } catch (error) {
+                console.error('Error saving to storage:', error);
+            }
+        }
+
+        function loadFromStorage() {
+            try {
+                const stored = localStorage.getItem('portfolioData');
+                if (stored) {
+                    portfolioData = JSON.parse(stored);
+                }
+            } catch (error) {
+                console.error('Error loading from storage:', error);
+                portfolioData = [];
+            }
+        }
+
+        function backupData() {
+            try {
+                const backup = {
+                    data: portfolioData,
+                    timestamp: new Date().toISOString(),
+                    version: '2.0'
+                };
+                localStorage.setItem('portfolioBackup', JSON.stringify(backup));
+                showAlert('Data backed up successfully.', 'success');
+            } catch (error) {
+                showAlert('Error backing up data: ' + error.message, 'error');
+            }
+        }
+
+        function restoreData() {
+            try {
+                const backup = localStorage.getItem('portfolioBackup');
+                if (!backup) {
+                    showAlert('No backup found.', 'warning');
+                    return;
+                }
+
+                const backupData = JSON.parse(backup);
+                if (confirm(`Restore backup from ${new Date(backupData.timestamp).toLocaleString()}? This will replace current data.`)) {
+                    portfolioData = backupData.data || [];
+                    saveToStorage();
+                    updateDashboard();
+                    updatePortfolioTable();
+                    showAlert('Data restored successfully.', 'success');
+                }
+            } catch (error) {
+                showAlert('Error restoring data: ' + error.message, 'error');
+            }
+        }
+
+        // Utility functions
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('de-DE', {
+                style: 'currency',
+                currency: 'EUR',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function formatPercentage(value) {
+            return `${value.toFixed(1)}%`;
+        }
+
+        function showAlert(message, type = 'info') {
+            // Remove existing alerts
+            const existingAlerts = document.querySelectorAll('.alert');
+            existingAlerts.forEach(alert => alert.remove());
+
+            // Create new alert
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.innerHTML = `
+                <strong>${type === 'error' ? 'Error:' : type === 'success' ? 'Success:' : type === 'warning' ? 'Warning:' : 'Info:'}</strong> ${message}
+                <button onclick="this.parentElement.remove()" style="float: right; background: none; border: none; font-size: 18px; cursor: pointer;">&times;</button>
+            `;
+
+            // Insert at the top of the active page
+            const activePage = document.querySelector('.page.active');
+            if (activePage) {
+                activePage.insertBefore(alert, activePage.firstChild);
+            }
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alert.parentElement) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html><strong>${company.companyName}</strong></td>
+                        <td>${company.isin}</td>
+                        <td>${formatCurrency(company.marketValue)}</td>
+                        <td>${company.initialInvestment ? formatCurrency(company.initialInvestment) : '-'}</td>
+                        <td style="color: var(--${returnClass}-color)">${formatPercentage(returnValue)}</td>
+                        <td>${company.ownership ? formatPercentage(company.ownership) : '-'}</td>
+                        <td>${company.sector || '-'}</td>
+                        <td>${company.stage || '-'}</td>
+                        <td>
